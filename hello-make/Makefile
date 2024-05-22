@@ -1,19 +1,30 @@
+CC = gcc
+RM = rm
 
-LDFLAGS += 
-INCLUDE += -I.
+CFLAGS = -c -Wall
+LDFLAGS = 
 
-OBJS = hello.o \
+INCLUEDIR = -I.
+DESTDIR = 
+BINDIR = /usr/bin
+
+OBJECTS = hello.o \
 helloprint.o
 
-BIN = hello-make
+EXECUTABLE = hello-make
 
-all: $(BIN)
+all: $(EXECUTABLE)
 
-$(BIN): $(OBJS)
-	 $(CC) $(CFLAGS) -o $@ $(OBJS) $(LFLAGS)
+$(EXECUTABLE): $(OBJECTS)
+	 $(CC) $(LFLAGS) -o $@ $(OBJECTS)
 
 # .c.o = %.o : %.c, %< = first Prerequisite, $@ = first target 
 %.o: %.c
 	 $(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
+
 clean:
-	rm -rf $(BIN) *.o
+	rm -rf $(EXECUTABLE) *.o
+
+install: $(EXECUTABLE)
+	mkdir -p ${DESTDIR}/${BINDIR}
+	install -m 0755 $< ${DESTDIR}/${BINDIR}
