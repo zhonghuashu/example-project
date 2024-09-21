@@ -16,9 +16,10 @@ void busyCpu()
     ::clock_gettime(CLOCK_MONOTONIC, &tpstart);
 
     volatile long long i;
-    for (i = 0; i < 3000; ++i)
+    for (i = 0; i < 9000; ++i)
     {
         // Loop 3000: 95 us / CPU 25 %
+        // Loop 9000: 93 us / CPU 23 %  (Linux arrow-sockit 5.10.100-altera)
     }
 
     ::clock_gettime(CLOCK_MONOTONIC, &tpend);
