@@ -96,7 +96,7 @@ void posixTimerTest()
 
 int main(int argc, char* argv[])
 {
-    printf("Timer test started\n");
+    printf("Timer test c program started\n");
     posixTimerTest();
     return 0;
 }

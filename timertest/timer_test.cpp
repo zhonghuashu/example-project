@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
 namespace {
 
@@ -107,7 +108,7 @@ void posixTimerTest()
 }
 int main(int argc, char* argv[])
 {
-    ::printf("Timer test started\n");
+    ::printf("Timer test cpp program started\n");
     posixTimerTest();
     return 0;
 }
