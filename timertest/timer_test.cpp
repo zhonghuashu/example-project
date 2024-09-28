@@ -1,3 +1,10 @@
+/**
+ * @file timer_test.cpp
+ * @brief Timer test to verify timer cause high CPU load (see post in stack overflow:
+ https://stackoverflow.com/questions/79010823/linux-posix-timer-cause-high-total-cpu-load)
+ * @author Shu, Zhong Hua
+ * @date 2024-09-28
+ */
 #include <csignal>
 #include <iostream>
 #include <unistd.h>
@@ -5,6 +12,15 @@
 #include <getopt.h>
 
 namespace {
+
+struct TestParameter
+{
+    int loop;
+    int timeUs;
+    char type;
+};
+
+TestParameter mTestParameter = { 9000, 500 };
 
 void busyCpu()
 {
@@ -16,7 +32,7 @@ void busyCpu()
     ::clock_gettime(CLOCK_MONOTONIC, &tpstart);
 
     volatile long long i;
-    for (i = 0; i < 9000; ++i)
+    for (i = 0; i < mTestParameter.loop; ++i)
     {
         // Loop 3000: 95 us / CPU 25 %
         // Loop 9000: 93 us / CPU 23 %  (Linux arrow-sockit 5.10.100-altera)
@@ -27,7 +43,7 @@ void busyCpu()
 
     if (!isPrinted)
     {
-        ::printf("Busy time: %ld us\n", timediff);
+        ::printf("Busy CPU time: %ld us with loop %d\n", timediff, mTestParameter.loop);
         isPrinted = true;
     }
 
@@ -40,7 +56,7 @@ void usleepTimeTest()
     ::printf("Start usleep timer test\n");
     const struct timespec ts = {
           .tv_sec = 0,
-          .tv_nsec = 500 * 1000     // 500 us
+          .tv_nsec = mTestParameter.timeUs * 1000
     };
 
     while(true)
@@ -74,7 +90,7 @@ void iTimerTest()
 {
     const struct timeval timeVal = {
           .tv_sec = 0,
-          .tv_usec = 500 // 500 us
+          .tv_usec = mTestParameter.timeUs
     };
 
     const itimerval its =
@@ -118,7 +134,7 @@ void posixTimerTest()
 
     const struct timespec timeVal = {
           .tv_sec = 0,
-          .tv_nsec = 500 * 1000 // 500 us
+          .tv_nsec = mTestParameter.timeUs * 1000
     };
 
     const struct itimerspec its =
@@ -165,7 +181,7 @@ void selectTimeTest()
 {
     struct timeval tv;
     tv.tv_sec = 0;
-    tv.tv_usec = 500;
+    tv.tv_usec = mTestParameter.timeUs;
     static int i = 0;
     static int count = 0;
 
@@ -192,12 +208,15 @@ void printUsage()
     ::printf(" -i, --itimer                  using itimer\n");
     ::printf(" -p, --ptimer                  using posix timer\n");
     ::printf(" -s, --select                  using select timer\n");
+    ::printf(" -l, --loop                    simulate busy CPU using loop with count, default 9000: 93 us / CPU 23 percentage\n");
+    ::printf(" -t, --time                    time interval in us, default 500\n");
 }
 
 bool parseArgs(const int argc, char *argv[])
 {
     bool ret = true;
     int opt;
+    const int OPT_ARG_LEN = 10;
     const struct option longopts[] =
     {
         {"help",        0, nullptr, 'h'},
@@ -205,6 +224,8 @@ bool parseArgs(const int argc, char *argv[])
         {"itimer",      0, nullptr, 'i'},
         {"ptimer",      0, nullptr, 'p'},
         {"select",      0, nullptr, 's'},
+        {"loop",        1, nullptr, 'l'},
+        {"time",        1, nullptr, 't'},
         {nullptr,       0, nullptr, 0}
     };
 
@@ -214,7 +235,7 @@ bool parseArgs(const int argc, char *argv[])
         return false;
     }
 
-    while ((opt = ::getopt_long(argc, argv, ":huips", longopts, nullptr)) != -1)
+    while ((opt = ::getopt_long(argc, argv, ":huipsl:t:", longopts, nullptr)) != -1)
     {
         switch (opt)
         {
@@ -222,17 +243,17 @@ bool parseArgs(const int argc, char *argv[])
                 printUsage();
                 break;
             case 'u':
-                usleepTimeTest();
-                break;
             case 'i':
-                iTimerTest();
-                break;
             case 'p':
-                posixTimerTest();
-                break;
             case 's':
-                selectTimeTest();
+                mTestParameter.type = opt;
                 break;
+            case 'l':
+                mTestParameter.loop = ::strtol(::optarg, nullptr, OPT_ARG_LEN);
+                break;
+            case 't':
+                mTestParameter.timeUs = ::strtol(::optarg, nullptr, OPT_ARG_LEN);
+                break;                                
             case ':':
                 ::printf("Option needs a value\n");
                 ret = false;
@@ -259,6 +280,26 @@ int main(int argc, char *argv[])
     if (!parseArgs(argc, argv))
     {
         return EXIT_FAILURE;
+    }
+
+    ::printf("Time interval: %d\n", mTestParameter.timeUs);
+    
+    switch (mTestParameter.type)
+    {
+        case 'u':
+            usleepTimeTest();
+            break;
+        case 'i':
+            iTimerTest();
+            break;
+        case 'p':
+            posixTimerTest();
+            break;
+        case 's':
+            selectTimeTest();
+            break;
+        default:
+            break;
     }
 
     return EXIT_SUCCESS;
